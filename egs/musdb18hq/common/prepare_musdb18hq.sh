@@ -1,8 +1,7 @@
 #!/bin/bash
 
 musdb18hq_root="../../../dataset/musdb18hq"
-file=musdb18.zip
-is_hq=0
+file=musdb18hq.zip
 
 . ./parse_options.sh || exit 1
 
