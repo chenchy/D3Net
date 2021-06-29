@@ -1,11 +1,9 @@
 import os
-import shutil
-import subprocess
 import time
 import uuid
 
 import numpy as np
-from mir_eval.separation import bss_eval_sources
+import museval
 import torch
 import torch.nn as nn
 
@@ -254,19 +252,9 @@ class TesterBase:
         
         test_loss = 0
         test_loss_improvement = 0
-        test_sdr_improvement = 0
-        test_sir_improvement = 0
-        test_sar = 0
-        test_pesq = 0
-        n_pesq_error = 0
         n_test = len(self.loader.dataset)
 
-        print("ID, Loss, Loss improvement, SDR improvement, SIR improvement, SAR, PESQ", flush=True)
-
-        tmp_dir = os.path.join(os.getcwd(), 'tmp')
-        os.makedirs(tmp_dir, exist_ok=True)
-        shutil.copy('./PESQ', os.path.join(tmp_dir, 'PESQ'))
-        os.chdir(tmp_dir)
+        print("ID, Loss, Loss improvement", flush=True)
         
         with torch.no_grad():
             for idx, (mixture, sources, titles) in enumerate(self.loader):
@@ -287,23 +275,11 @@ class TesterBase:
                 estimated_sources = output[0].cpu().numpy() # -> (n_sources, T)
                 perm_idx = perm_idx[0] # -> (n_sources,)
                 titles = titles[0] # -> <str>
-
-                repeated_mixture = np.tile(mixture, reps=(self.n_sources, 1))
-                result_estimated = bss_eval_sources(
-                    reference_sources=sources,
-                    estimated_sources=estimated_sources
-                )
-                result_mixed = bss_eval_sources(
-                    reference_sources=sources,
-                    estimated_sources=repeated_mixture
-                )
-        
-                sdr_improvement = np.mean(result_estimated[0] - result_mixed[0])
-                sir_improvement = np.mean(result_estimated[1] - result_mixed[1])
-                sar = np.mean(result_estimated[2])
                 
+                """
                 norm = np.abs(mixture).max()
                 mixture /= norm
+                """
                 mixture_ID = titles
                 
                 # Generate random number temporary wav file.
@@ -317,62 +293,35 @@ class TesterBase:
                     source, estimated_source = sources[order_idx], estimated_sources[perm_idx[order_idx]]
                     
                     # Target
+                    """
                     norm = np.abs(source).max()
                     source /= norm
+                    
                     if idx < 10 and  self.out_dir is not None:
                         source_path = os.path.join(self.out_dir, "{}_{}-target.wav".format(mixture_ID, order_idx + 1))
                         write_wav(source_path, signal=source.T, sr=self.sr)
                     source_path = "tmp-{}-target_{}.wav".format(order_idx + 1, random_ID)
                     write_wav(source_path, signal=source.T, sr=self.sr)
+                    """
                     
                     # Estimated source
+                    """
                     norm = np.abs(estimated_source).max()
                     estimated_source /= norm
+                    
                     if idx < 10 and  self.out_dir is not None:
                         estimated_path = os.path.join(self.out_dir, "{}_{}-estimated.wav".format(mixture_ID, order_idx + 1))
                         write_wav(estimated_path, signal=estimated_source.T, sr=self.sr)
                     estimated_path = "tmp-{}-estimated_{}.wav".format(order_idx + 1, random_ID)
                     write_wav(estimated_path, signal=estimated_source.T, sr=self.sr)
+                    """
                 
-                pesq = 0
-                
-                for source_idx in range(self.n_sources):
-                    source_path = "tmp-{}-target_{}.wav".format(source_idx + 1, random_ID)
-                    estimated_path = "tmp-{}-estimated_{}.wav".format(source_idx + 1, random_ID)
-                    
-                    command = "./PESQ +{} {} {}".format(self.sr, source_path, estimated_path)
-                    command += " | grep Prediction | awk '{print $5}'"
-                    pesq_output = subprocess.check_output(command, shell=True)
-                    pesq_output = pesq_output.decode().strip()
-                    
-                    if pesq_output == '':
-                        # If processing error occurs in PESQ software, it is regarded as PESQ score is -0.5. (minimum of PESQ)
-                        n_pesq_error += 1
-                        pesq += MIN_PESQ
-                    else:
-                        pesq += float(pesq_output)
-                    
-                    subprocess.call("rm {}".format(source_path), shell=True)
-                    subprocess.call("rm {}".format(estimated_path), shell=True)
-                
-                pesq /= self.n_sources
-                print("{}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}".format(mixture_ID, loss.item(), loss_improvement, sdr_improvement, sir_improvement, sar, pesq), flush=True)
+                print("{}, {:.3f}, {:.3f}".format(mixture_ID, loss.item(), loss_improvement), flush=True)
                 
                 test_loss += loss.item()
                 test_loss_improvement += loss_improvement
-                test_sdr_improvement += sdr_improvement
-                test_sir_improvement += sir_improvement
-                test_sar += sar
-                test_pesq += pesq
-        
-        os.chdir("../") # back to the original directory
 
         test_loss /= n_test
         test_loss_improvement /= n_test
-        test_sdr_improvement /= n_test
-        test_sir_improvement /= n_test
-        test_sar /= n_test
-        test_pesq /= n_test
             
-        print("Loss: {:.3f}, loss improvement: {:3f}, SDR improvement: {:3f}, SIR improvement: {:3f}, SAR: {:3f}, PESQ: {:.3f}".format(test_loss, test_loss_improvement, test_sdr_improvement, test_sir_improvement, test_sar, test_pesq))
-        print("Evaluation of PESQ returns error {} times.".format(n_pesq_error))
+        print("Loss: {:.3f}, loss improvement: {:3f}".format(test_loss, test_loss_improvement))

@@ -8,7 +8,7 @@ target='vocals'
 patch=256
 max_duration=30
 
-musdb18_root="../../../dataset/musdb18"
+musdb18hq_root="../../../dataset/musdb18hq"
 sr=44100
 
 window_fn='hann'
@@ -54,7 +54,7 @@ time_stamp=`TZ=UTC-9 date "+%Y%m%d-%H%M%S"`
 export CUDA_VISIBLE_DEVICES="${gpu_id}"
 
 train.py \
---musdb18_root ${musdb18_root} \
+--musdb18hq_root ${musdb18hq_root} \
 --config_path "${config_path}" \
 --sr ${sr} \
 --patch_size ${patch} \
