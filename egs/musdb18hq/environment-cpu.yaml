@@ -1,4 +1,4 @@
-name: D3Net_musdb18
+name: D3Net_musdb18-cpu
 
 channels:
   - conda-forge
