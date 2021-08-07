@@ -1,16 +1,13 @@
 import os
 import shutil
-import subprocess
 import time
-import uuid
 
 import numpy as np
-from mir_eval.separation import bss_eval_sources
 import torch
+import torchaudio
 import torch.nn as nn
 
 from utils.utils import draw_loss_curve
-from utils.utils_audio import write_wav
 
 MIN_PESQ=-0.5
 
@@ -188,13 +185,13 @@ class TrainerBase:
                     save_path = os.path.join(save_dir, "mixture.wav")
                     norm = np.abs(mixture).max()
                     mixture = mixture / norm
-                    write_wav(save_path, signal=mixture.T, sr=self.sr)
+                    torchaudio.save(save_path, mixture, sample_rate=self.sr)
                     
                     for source_idx, estimated_source in enumerate(estimated_sources):
                         save_path = os.path.join(save_dir, "epoch{}-{}.wav".format(epoch+1, source_idx+1))
                         norm = np.abs(estimated_source).max()
                         estimated_source = estimated_source / norm
-                        write_wav(save_path, signal=estimated_source.T, sr=self.sr)
+                        torchaudio.save(save_path, estimated_source, sample_rate=self.sr)
         
         valid_loss /= n_valid
         
@@ -287,83 +284,18 @@ class TesterBase:
                 estimated_sources = output[0].cpu().numpy() # -> (n_sources, T)
                 perm_idx = perm_idx[0] # -> (n_sources,)
                 titles = titles[0] # -> <str>
-
-                repeated_mixture = np.tile(mixture, reps=(self.n_sources, 1))
-                result_estimated = bss_eval_sources(
-                    reference_sources=sources,
-                    estimated_sources=estimated_sources
-                )
-                result_mixed = bss_eval_sources(
-                    reference_sources=sources,
-                    estimated_sources=repeated_mixture
-                )
-        
-                sdr_improvement = np.mean(result_estimated[0] - result_mixed[0])
-                sir_improvement = np.mean(result_estimated[1] - result_mixed[1])
-                sar = np.mean(result_estimated[2])
                 
-                norm = np.abs(mixture).max()
-                mixture /= norm
                 mixture_ID = titles
-                
-                # Generate random number temporary wav file.
-                random_ID = str(uuid.uuid4())
-
-                if idx < 10 and self.out_dir is not None:
-                    mixture_path = os.path.join(self.out_dir, "{}.wav".format(mixture_ID))
-                    write_wav(mixture_path, signal=mixture.T, sr=self.sr)
                 
                 for order_idx in range(self.n_sources):
                     source, estimated_source = sources[order_idx], estimated_sources[perm_idx[order_idx]]
                     
-                    # Target
-                    norm = np.abs(source).max()
-                    source /= norm
-                    if idx < 10 and  self.out_dir is not None:
-                        source_path = os.path.join(self.out_dir, "{}_{}-target.wav".format(mixture_ID, order_idx + 1))
-                        write_wav(source_path, signal=source.T, sr=self.sr)
-                    source_path = "tmp-{}-target_{}.wav".format(order_idx + 1, random_ID)
-                    write_wav(source_path, signal=source.T, sr=self.sr)
-                    
                     # Estimated source
-                    norm = np.abs(estimated_source).max()
-                    estimated_source /= norm
-                    if idx < 10 and  self.out_dir is not None:
-                        estimated_path = os.path.join(self.out_dir, "{}_{}-estimated.wav".format(mixture_ID, order_idx + 1))
-                        write_wav(estimated_path, signal=estimated_source.T, sr=self.sr)
-                    estimated_path = "tmp-{}-estimated_{}.wav".format(order_idx + 1, random_ID)
-                    write_wav(estimated_path, signal=estimated_source.T, sr=self.sr)
-                
-                pesq = 0
-                
-                for source_idx in range(self.n_sources):
-                    source_path = "tmp-{}-target_{}.wav".format(source_idx + 1, random_ID)
-                    estimated_path = "tmp-{}-estimated_{}.wav".format(source_idx + 1, random_ID)
-                    
-                    command = "./PESQ +{} {} {}".format(self.sr, source_path, estimated_path)
-                    command += " | grep Prediction | awk '{print $5}'"
-                    pesq_output = subprocess.check_output(command, shell=True)
-                    pesq_output = pesq_output.decode().strip()
-                    
-                    if pesq_output == '':
-                        # If processing error occurs in PESQ software, it is regarded as PESQ score is -0.5. (minimum of PESQ)
-                        n_pesq_error += 1
-                        pesq += MIN_PESQ
-                    else:
-                        pesq += float(pesq_output)
-                    
-                    subprocess.call("rm {}".format(source_path), shell=True)
-                    subprocess.call("rm {}".format(estimated_path), shell=True)
-                
-                pesq /= self.n_sources
-                print("{}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}".format(mixture_ID, loss.item(), loss_improvement, sdr_improvement, sir_improvement, sar, pesq), flush=True)
+                    estimated_path = os.path.join(self.out_dir, mixture_ID, "{}.wav".format(source))
+                    torchaudio.save(estimated_path, estimated_source, sample_rate=self.sr)
                 
                 test_loss += loss.item()
                 test_loss_improvement += loss_improvement
-                test_sdr_improvement += sdr_improvement
-                test_sir_improvement += sir_improvement
-                test_sar += sar
-                test_pesq += pesq
         
         os.chdir("../") # back to the original directory
 

@@ -5,7 +5,7 @@ import numpy as np
 import musdb
 import torch
 
-__sources__=['drums','bass','other','vocals']
+__sources__ = ['drums', 'bass', 'other', 'vocals']
 
 EPS=1e-12
 THRESHOLD_POWER=1e-5
