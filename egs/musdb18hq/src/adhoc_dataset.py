@@ -401,9 +401,6 @@ class SpectrogramTrainDataset(SpectrogramDataset):
             source: [] for source in sources
         }
 
-        print(len(self.mus.tracks))
-        exit()
-
         for songID, track in enumerate(self.mus.tracks):
             for start in np.arange(0, track.duration, patch_duration - overlap):
                 if start + patch_duration >= track.duration:
