@@ -183,9 +183,11 @@ class WaveEvalDataset(WaveDataset):
         return dataset
 
 class WaveTestDataset(WaveDataset):
-    def __init__(self, musdb18_root, sr=44100, sources=__sources__):
-        super().__init__(musdb18_root, sr=sr, sources=sources)
+    def __init__(self, musdb18_root, sr=44100, sources=__sources__, target=None):
+        super().__init__(musdb18_root, sr=sr, sources=sources, target=target)
 
+        assert type(target) is str, "Specify single `target`"
+        
         self.mus = musdb.DB(root=self.musdb18_root, subsets="test", sample_rate=sr)
 
         self.json_data = []

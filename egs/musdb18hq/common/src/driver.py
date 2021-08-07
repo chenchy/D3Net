@@ -251,19 +251,7 @@ class TesterBase:
         
         test_loss = 0
         test_loss_improvement = 0
-        test_sdr_improvement = 0
-        test_sir_improvement = 0
-        test_sar = 0
-        test_pesq = 0
-        n_pesq_error = 0
         n_test = len(self.loader.dataset)
-
-        print("ID, Loss, Loss improvement, SDR improvement, SIR improvement, SAR, PESQ", flush=True)
-
-        tmp_dir = os.path.join(os.getcwd(), 'tmp')
-        os.makedirs(tmp_dir, exist_ok=True)
-        shutil.copy('./PESQ', os.path.join(tmp_dir, 'PESQ'))
-        os.chdir(tmp_dir)
         
         with torch.no_grad():
             for idx, (mixture, sources, titles) in enumerate(self.loader):
@@ -296,15 +284,8 @@ class TesterBase:
                 
                 test_loss += loss.item()
                 test_loss_improvement += loss_improvement
-        
-        os.chdir("../") # back to the original directory
 
         test_loss /= n_test
         test_loss_improvement /= n_test
-        test_sdr_improvement /= n_test
-        test_sir_improvement /= n_test
-        test_sar /= n_test
-        test_pesq /= n_test
-            
-        print("Loss: {:.3f}, loss improvement: {:3f}, SDR improvement: {:3f}, SIR improvement: {:3f}, SAR: {:3f}, PESQ: {:.3f}".format(test_loss, test_loss_improvement, test_sdr_improvement, test_sir_improvement, test_sar, test_pesq))
-        print("Evaluation of PESQ returns error {} times.".format(n_pesq_error))
+        
+        print("Loss: {:.3f}, loss improvement: {:3f}".format(test_loss, test_loss_improvement))
