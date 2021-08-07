@@ -1,11 +1,11 @@
-name: D3Net_musdb18
+name: D3Net_musdb18-gpu
 
 channels:
-  - conda-forge
   - pytorch
+  - conda-forge
 
 dependencies:
-  - python>=3.6,<=3.9
+  - python>=3.6,<=3.8
   - numpy>=1.19
   - matplotlib>=3.3.2
   - pytorch>=1.8.0
