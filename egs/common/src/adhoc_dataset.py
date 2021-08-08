@@ -635,7 +635,7 @@ class SpectrogramEvalDataset(SpectrogramDataset):
         Returns:
             mixture <torch.Tensor>: Complex tensor with shape (1, 2, n_bins, n_frames)  if `target` is list, otherwise (2, n_bins, n_frames) 
             target <torch.Tensor>: Complex tensor with shape (len(target), 2, n_bins, n_frames) if `target` is list, otherwise (2, n_bins, n_frames)
-            T (), <int>: Number of samples in time-domain
+            T <float>: Duration [sec]
             title <str>: Title of song
         """
         song_data = self.json_data[idx]
@@ -760,7 +760,7 @@ class SpectrogramTestDataset(SpectrogramDataset):
         Returns:
             mixture <torch.Tensor>: Complex tensor with shape (1, 2, n_bins, n_frames)  if `target` is list, otherwise (2, n_bins, n_frames) 
             target <torch.Tensor>: Complex tensor with shape (len(target), 2, n_bins, n_frames) if `target` is list, otherwise (2, n_bins, n_frames)
-            T (), <int>: Number of samples in time-domain
+            T <float>: Duration [sec]
             title <str>: Title of song
         """
         song_data = self.json_data[idx]
