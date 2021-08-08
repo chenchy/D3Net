@@ -227,64 +227,7 @@ class TesterBase:
         self._reset(args)
         
     def _reset(self, args):
-        self.sr = args.sr
-        self.n_sources = args.n_sources
-        
-        self.out_dir = args.out_dir
-        
-        if self.out_dir is not None:
-            self.out_dir = os.path.abspath(args.out_dir)
-            os.makedirs(self.out_dir, exist_ok=True)
-        
-        self.use_cuda = args.use_cuda
-        
-        package = torch.load(args.model_path, map_location=lambda storage, loc: storage)
-        
-        if isinstance(self.model, nn.DataParallel):
-            self.model.module.load_state_dict(package['state_dict'])
-        else:
-            self.model.load_state_dict(package['state_dict'])
-    
-    def run(self):
-        self.model.eval()
-        
-        test_loss = 0
-        test_loss_improvement = 0
-        n_test = len(self.loader.dataset)
-        
-        with torch.no_grad():
-            for idx, (mixture, sources, titles) in enumerate(self.loader):
-                if self.use_cuda:
-                    mixture = mixture.cuda()
-                    sources = sources.cuda()
-                
-                loss_mixture = self.criterion(mixture, sources, batch_mean=False)
-                loss_mixture = loss_mixture.sum(dim=0)
-                
-                output = self.model(mixture)
-                loss = self.criterion(output, sources, batch_mean=False)
-                loss = loss.sum(dim=0)
-                loss_improvement = loss_mixture.item() - loss.item()
-                
-                mixture = mixture[0].squeeze(dim=0).cpu().numpy() # -> (T,)
-                sources = sources[0].cpu().numpy() # -> (n_sources, T)
-                estimated_sources = output[0].cpu().numpy() # -> (n_sources, T)
-                perm_idx = perm_idx[0] # -> (n_sources,)
-                titles = titles[0] # -> <str>
-                
-                mixture_ID = titles
-                
-                for order_idx in range(self.n_sources):
-                    source, estimated_source = sources[order_idx], estimated_sources[perm_idx[order_idx]]
-                    
-                    # Estimated source
-                    estimated_path = os.path.join(self.out_dir, mixture_ID, "{}.wav".format(source))
-                    torchaudio.save(estimated_path, estimated_source, sample_rate=self.sr)
-                
-                test_loss += loss.item()
-                test_loss_improvement += loss_improvement
+        raise NotImplementedError("Implement `_reset` in the sub-class.")
 
-        test_loss /= n_test
-        test_loss_improvement /= n_test
-        
-        print("Loss: {:.3f}, loss improvement: {:3f}".format(test_loss, test_loss_improvement))
+    def run(self):
+        raise NotImplementedError("Implement `run` in the sub-class.")
