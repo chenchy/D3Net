@@ -38,8 +38,8 @@ gpu_id="0"
 save_dir="${exp_dir}/sr${sr}/${sources}/patch${patch}/${criterion}/stft${fft_size}-${hop_size}_${window_fn}-window/b${batch_size}_e${epochs}_${optimizer}-lr${lr}-decay${weight_decay}_clip${max_norm}/seed${seed}"
 
 estimated_musdb18hq_root="${save_dir}/musdb18hq"
-log_dir="${save_dir}/test/log"
-# json_dir="${save_dir}/test/json"
+json_dir="${save_dir}/eval/json"
+log_dir="${save_dir}/eval/log"
 
 if [ ! -e "${log_dir}" ]; then
     mkdir -p "${log_dir}"
@@ -52,4 +52,5 @@ export CUDA_VISIBLE_DEVICES="${gpu_id}"
 eval_all.py \
 --musdb18hq_root "${musdb18hq_root}" \
 --estimated_musdb18hq_root "${estimated_musdb18hq_root}" \
+--json_dir "${json_dir}" \
 --seed ${seed} | tee "${log_dir}/eval_${time_stamp}.log"

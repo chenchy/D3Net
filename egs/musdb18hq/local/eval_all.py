@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser(description="Evaluation of D3Net")
 
 parser.add_argument('--musdb18hq_root', type=str, default=None, help='Path to MUSDB18-HQ')
 parser.add_argument('--estimated_musdb18hq_root', type=str, default=None, help='Path to estimated MUSDB18-HQ')
+parser.add_argument('--out_dir', type=str, default=None, help='Output directory')
 parser.add_argument('--seed', type=int, default=42, help='Random seed')
 
 def main(args):

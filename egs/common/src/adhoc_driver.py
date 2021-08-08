@@ -194,6 +194,7 @@ class AdhocTrainer(TrainerBase):
                     mixture = mixture.view(-1, *mixture.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
                     estimated_source = estimated_source.view(-1, *estimated_source.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
                     
+                    mixture, estimated_source = mixture.cpu(), estimated_source.cpu()
                     mixture = torch.istft(mixture, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T_segment)
                     estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T_segment)
 
@@ -202,11 +203,9 @@ class AdhocTrainer(TrainerBase):
                     
                     batch_size, n_mics, T_segment = mixture.size()
                     
-                    mixture = mixture.cpu()
                     mixture = mixture.permute(1, 0, 2) # -> (n_mics, batch_size, T_segment)
                     mixture = mixture.reshape(n_mics, batch_size * T_segment)
 
-                    estimated_source = estimated_source.cpu()
                     estimated_source = estimated_source.permute(1, 0, 2) # -> (n_mics, batch_size, T_segment)
                     estimated_source = estimated_source.reshape(n_mics, batch_size * T_segment)
                     
@@ -300,13 +299,13 @@ class AdhocTester(TesterBase):
                 estimated_source_channels = estimated_source.size()[:-2] # -> (batch_size, n_mics)
                 estimated_source = estimated_source.view(-1, *estimated_source.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
                 
+                estimated_source = estimated_source.cpu()
                 estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
 
                 estimated_source = estimated_source.view(*estimated_source_channels, -1) # -> (batch_size, n_mics, T_segment)
                 
                 batch_size, n_mics, T_segment = estimated_source.size()
                 
-                estimated_source = estimated_source.cpu()
                 estimated_source = estimated_source.permute(1, 0, 2) # -> (n_mics, batch_size, T_segment)
                 estimated_source = estimated_source.reshape(n_mics, batch_size * T_segment)[:, :samples]
                 

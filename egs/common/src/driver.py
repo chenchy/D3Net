@@ -1,6 +1,4 @@
-import os
-import glob
-
+import musdb
 import museval
 
 import torch
@@ -81,20 +79,30 @@ class EvaluaterBase:
         self._reset(args)
     
     def _reset(self, args):
-        self.musdb18_root = args.musdb18_root
-        self.estimated_musdb18_root = args.estimated_musdb18_root
+        self.target = [
+            'drums', 'bass', 'other', 'vocals', 'accompaniment'
+        ]
+        self.mus = musdb.DB(root=args.musdb18_root, subsets="test", is_wav=True)
+        self.estimated_mus = musdb.DB(root=args.estimated_musdb18_root, subsets="test", is_wav=True)
+        self.json_dir = args.json_dir
     
     def run(self):
-        musdb18_root, estimated_musdb18_root = self.musdb18_root, self.estimated_musdb18_root
-        
-        names = sorted(glob.glob(os.path.join(musdb18_root, 'test', "*")))
-
         results = museval.EvalStore(frames_agg='median', tracks_agg='median')
 
-        for name in names:
-            reference_dir = os.path.join(musdb18_root, name)
-            estimates_dir = os.path.join(estimated_musdb18_root, name)
-            scores = museval.eval_dir(reference_dir, estimates_dir)
+        for track, estimated_track in zip(self.mus, self.estimated_mus):
+            scores = self.run_one_track(track, estimated_track)
             results.add_track(scores)
         
-        return results
+        print(results)
+    
+    def run_one_track(self, track, estimated_track):
+        estimates = {}
+
+        for _target in self.target:
+            estimates[_target] = estimated_track.targets[_target].audio
+        
+        scores = museval.eval_mus_track(
+            track, estimates, output_dir=self.json_dir
+        )
+
+        return scores
