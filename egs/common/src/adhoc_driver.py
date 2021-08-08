@@ -283,7 +283,7 @@ class AdhocTester(TesterBase):
 
                 if n_dims > 3:
                     estimated_source_channels = estimated_source.size()[:-2] # -> (batch_size, n_mics)
-                    estimated_source = estimated_source.view(-1, *estimated_source.size[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
+                    estimated_source = estimated_source.view(-1, *estimated_source.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
                 
                 estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
                 
