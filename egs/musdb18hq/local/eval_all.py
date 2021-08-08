@@ -3,8 +3,6 @@
 
 import argparse
 
-import musdb
-
 from utils.utils import set_seed
 from driver import EvaluaterBase as Evaluater
 
@@ -18,12 +16,8 @@ parser.add_argument('--seed', type=int, default=42, help='Random seed')
 
 def main(args):
     set_seed(args.seed)
-
-    loader = {}
-    loader['mus'] = musdb.DB(root=args.musdb18hq_root, subsets="test", is_wav=True)
-    loader['est'] = musdb.DB(root=args.estimated_musdb18hq_root, subsets="test", is_wav=True)
     
-    evaluater = Evaluater(loader, args)
+    evaluater = Evaluater(args)
     evaluater.run()
     
 if __name__ == '__main__':

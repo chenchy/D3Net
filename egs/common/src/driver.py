@@ -1,9 +1,12 @@
+import os
+import glob
+
 import museval
 
 import torch
 import torch.nn as nn
 
-MIN_PESQ=-0.5
+MIN_PESQ = -0.5
 
 class TrainerBase:
     def __init__(self, model, loader, criterion, optimizer, args):
@@ -74,24 +77,22 @@ class TesterBase:
         raise NotImplementedError("Implement `run` in the sub-class.")
 
 class EvaluaterBase:
-    def __init__(self, loader, args):
-        self.loader = loader
+    def __init__(self, args):
+        self._reset(args)
+    
+    def _reset(self, args):
+        self.musdb18_root = args.musdb18_root
+        self.estimated_musdb18_root = args.estimated_musdb18_root
     
     def run(self):
-        mus, est = self.loader['mus'], self.loader['est']
+        musdb18_root, estimated_musdb18_root = self.musdb18_root, self.estimated_musdb18_root
+        
+        names = sorted(glob.glob(os.path.join(musdb18_root, 'test', "*")))
 
         results = museval.EvalStore(frames_agg='median', tracks_agg='median')
 
-        for mus_track, est_track in zip(mus.tracks, est.tracks):
-            assert mus_track.name == est_track.name, "Invalid pair is compared. Check folders."
-
-            estimates = {
-                'vocals': est_track.targets['vocals'].audio,
-                'accompaniment': est_track.targets['accompaniment'].audio
-            }
-
-            scores = museval.eval_mus_track(
-                mus_track, estimates
-            )
-
+        for name in names:
+            reference_dir = os.path.join(musdb18_root, name)
+            estimates_dir = os.path.join(estimated_musdb18_root, name)
+            scores = museval.eval_dir(reference_dir, estimates_dir)
             results.add_track(scores)
