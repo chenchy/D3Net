@@ -36,7 +36,6 @@ def main(args):
     
     args.sources = args.sources.replace('[', '').replace(']', '').split(',')
     patch_duration = (args.hop_size * (args.patch_size - 1 - (args.fft_size - args.hop_size) // args.hop_size - 1) + args.fft_size) / args.sr
-    overlap = patch_duration / 2
     test_dataset = SpectrogramTestDataset(args.musdb18hq_root, fft_size=args.fft_size, hop_size=args.hop_size, sr=args.sr, patch_duration=patch_duration, sources=args.sources, target=args.target)
     print("Test dataset includes {} samples.".format(len(test_dataset)))
     

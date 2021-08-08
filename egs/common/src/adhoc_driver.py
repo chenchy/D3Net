@@ -213,6 +213,24 @@ class AdhocTrainer(TrainerBase):
 class AdhocTester(TesterBase):
     def __init__(self, model, loader, criterion, args):
         super().__init__(model, loader, criterion, args)
+
+    def _reset(self, args):
+        self.sr = args.sr
+        
+        self.out_dir = args.out_dir
+        
+        if self.out_dir is not None:
+            self.out_dir = os.path.abspath(args.out_dir)
+            os.makedirs(self.out_dir, exist_ok=True)
+        
+        self.use_cuda = args.use_cuda
+        
+        package = torch.load(args.model_path, map_location=lambda storage, loc: storage)
+        
+        if isinstance(self.model, nn.DataParallel):
+            self.model.module.load_state_dict(package['state_dict'])
+        else:
+            self.model.load_state_dict(package['state_dict'])
     
     def run(self):
         self.model.eval()
