@@ -248,13 +248,14 @@ class AdhocTester(TesterBase):
                 """
                     mixture: (batch_size, 2, n_bins, n_frames)
                     source: (batch_size, 2, n_bins, n_frames)
-                    T <int>: Length in time domain
+                    T <float>: Length in time domain
                     title <str>: Title of song
                 """
-
                 if self.use_cuda:
                     mixture = mixture.cuda()
                     source = source.cuda()
+                
+                samples = int(self.sr * T)
                 
                 mixture_amplitude = torch.abs(mixture)
                 source_amplitude = torch.abs(source)
@@ -279,20 +280,18 @@ class AdhocTester(TesterBase):
                 ratio = estimated_source_amplitude / mixture_amplitude
                 estimated_source = ratio * mixture # -> (batch_size, n_mics, n_bins, n_frames)
 
-                n_dims = mixture.dim()
-
-                if n_dims > 3:
-                    estimated_source_channels = estimated_source.size()[:-2] # -> (batch_size, n_mics)
-                    estimated_source = estimated_source.view(-1, *estimated_source.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
+                estimated_source_channels = estimated_source.size()[:-2] # -> (batch_size, n_mics)
+                estimated_source = estimated_source.view(-1, *estimated_source.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
                 
                 estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
+
+                estimated_source = estimated_source.view(*estimated_source_channels, -1) # -> (batch_size, n_mics, T_segment)
                 
-                if n_dims > 3:
-                    estimated_source = estimated_source.view(*estimated_source_channels, -1) # # -> (batch_size, n_mics, T)
+                batch_size, n_mics, T_segment = estimated_source.size()
                 
                 estimated_source = estimated_source.cpu()
-                print(estimated_source.size(), T)
-                raise NotImplementedError
+                estimated_source = estimated_source.permute(1, 0, 2) # -> (n_mics, batch_size, T_segment)
+                estimated_source = estimated_source.view(n_mics, batch_size * T_segment)[:, :samples]
                 
                 # Estimated source
                 target = self.loader.dataset.target
@@ -303,6 +302,8 @@ class AdhocTester(TesterBase):
                 
                 test_loss += loss.item()
                 test_loss_improvement += loss_improvement
+
+                raise NotImplementedError
 
         test_loss /= n_test
         test_loss_improvement /= n_test
