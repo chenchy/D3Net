@@ -247,7 +247,7 @@ class AdhocTester(TesterBase):
                     T <int>: Length in time domain
                     title <str>: Title of song
                 """
-                print(mixture.size(), source.size(), T.size())
+                print(mixture.size(), source.size(), T)
                 raise NotImplementedError
                 if self.use_cuda:
                     mixture = mixture.cuda()
