@@ -202,7 +202,7 @@ class WaveTrainDataset(WaveDataset):
         return dataset
 
 class WaveEvalDataset(WaveDataset):
-    def __init__(self, musdb18_root, sr=SAMPLE_RATE_MUSDB, duration=10, overlap=None, sources=__sources__, target=None, json_path=None):
+    def __init__(self, musdb18_root, sr=SAMPLE_RATE_MUSDB, duration=10, sources=__sources__, target=None, json_path=None):
         super().__init__(musdb18_root, sr=sr, sources=sources, target=target)
         
         assert_sample_rate(sr)
@@ -214,11 +214,6 @@ class WaveEvalDataset(WaveDataset):
             return
 
         self.duration = duration
-        
-        if overlap is None:
-            overlap = self.duration / 2
-
-        self.overlap = overlap
         self.json_data = []
 
         for songID, track in enumerate(self.mus.tracks):
@@ -226,15 +221,8 @@ class WaveEvalDataset(WaveDataset):
                 'songID': songID,
                 'patches': []
             }
-            for start in np.arange(-(duration - overlap), - duration, -(duration - overlap)):
-                data = {
-                    'start': 0,
-                    'duration': duration + start,
-                    'padding_start': -start,
-                    'padding_end': 0
-                }
-                song_data['patches'].append(data)
-            for start in np.arange(0, track.duration, duration - overlap):
+
+            for start in np.arange(0, track.duration, duration):
                 if start + duration > track.duration:
                     data = {
                         'start': start,
@@ -330,7 +318,7 @@ class WaveEvalDataset(WaveDataset):
         return dataset
 
 class WaveTestDataset(WaveEvalDataset):
-    def __init__(self, musdb18_root, sr=SAMPLE_RATE_MUSDB, duration=10, overlap=None, sources=__sources__, target=None, json_path=None):
+    def __init__(self, musdb18_root, sr=SAMPLE_RATE_MUSDB, duration=10, sources=__sources__, target=None, json_path=None):
         super().__init__(musdb18_root, sr=sr, sources=sources, target=target)
         
         assert_sample_rate(sr)
@@ -342,11 +330,6 @@ class WaveTestDataset(WaveEvalDataset):
             return
 
         self.duration = duration
-        
-        if overlap is None:
-            overlap = self.duration / 2
-
-        self.overlap = overlap
         self.json_data = []
 
         for songID, track in enumerate(self.mus.tracks):
@@ -355,7 +338,7 @@ class WaveTestDataset(WaveEvalDataset):
                 'patches': []
             }
 
-            for start in np.arange(0, track.duration, duration - overlap):
+            for start in np.arange(0, track.duration, duration):
                 if start + duration > track.duration:
                     data = {
                         'start': start,
