@@ -218,8 +218,8 @@ class AdhocTester(TesterBase):
         self.sr = args.sr
 
         self.fft_size, self.hop_size = args.fft_size, args.hop_size    
-        self.window = self.valid_loader.dataset.window
-        self.normalize = self.valid_loader.dataset.normalize
+        self.window = self.loader.dataset.window
+        self.normalize = self.loader.dataset.normalize
         
         self.out_dir = args.out_dir
         
