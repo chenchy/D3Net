@@ -247,8 +247,7 @@ class AdhocTester(TesterBase):
                     T <int>: Length in time domain
                     title <str>: Title of song
                 """
-                print(mixture.size(), source.size(), T)
-                raise NotImplementedError
+
                 if self.use_cuda:
                     mixture = mixture.cuda()
                     source = source.cuda()
@@ -280,6 +279,8 @@ class AdhocTester(TesterBase):
                     estimated_source = estimated_source.view(*estimated_source_channels, *estimated_source.size()[-2:])
                 
                 estimated_source = estimated_source.cpu()
+                print(estimated_source.size(), T)
+                raise NotImplementedError
                 
                 # Estimated source
                 target = self.loader.dataset.target
