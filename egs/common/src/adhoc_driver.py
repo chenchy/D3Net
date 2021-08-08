@@ -258,7 +258,15 @@ class AdhocTester(TesterBase):
                 loss_mixture = self.criterion(mixture_amplitude, source_amplitude, batch_mean=False)
                 loss_mixture = loss_mixture.mean(dim=0)
                 
-                estimated_source_amplitude = self.model(mixture_amplitude)
+                estimated_source_amplitude = []
+
+                # Serial operation
+                for _mixture_amplitude in mixture_amplitude:
+                    _mixture_amplitude = _mixture_amplitude.unsqueeze(dim=0)
+                    _estimated_source_amplitude = self.model(_mixture_amplitude)
+                    estimated_source_amplitude.append(_estimated_source_amplitude)
+                
+                estimated_source_amplitude = torch.cat(estimated_source_amplitude, dim=0)
                 loss = self.criterion(estimated_source_amplitude, source_amplitude, batch_mean=False)
                 loss = loss.mean(dim=0)
 
