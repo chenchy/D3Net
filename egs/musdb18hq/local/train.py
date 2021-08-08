@@ -92,6 +92,9 @@ def main(args):
     else:
         raise ValueError("Not support criterion {}".format(args.criterion))
     
+    if args.anneal_epoch == 0:
+        args.anneal_epoch = None
+    
     trainer = AdhocTrainer(model, loader, criterion, optimizer, args)
     trainer.run()
     

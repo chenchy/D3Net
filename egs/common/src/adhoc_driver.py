@@ -91,7 +91,7 @@ class AdhocTrainer(TrainerBase):
             self.train_loss[epoch] = train_loss
             self.valid_loss[epoch] = valid_loss
 
-            if epoch + 1 == self.anneal_epoch - 1:
+            if self.anneal_epoch is not None and epoch + 1 == self.anneal_epoch - 1:
                 # From the next epoch, learning rate is channged.
                 anneal_lr = self.anneal_lr
                 for param_group in self.optimizer.param_groups:
