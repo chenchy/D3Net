@@ -1,3 +1,5 @@
+import museval
+
 import torch
 import torch.nn as nn
 
@@ -70,3 +72,26 @@ class TesterBase:
 
     def run(self):
         raise NotImplementedError("Implement `run` in the sub-class.")
+
+class EvaluaterBase:
+    def __init__(self, loader, args):
+        self.loader = loader
+    
+    def run(self):
+        mus, est = self.loader['mus'], self.loader['est']
+
+        results = museval.EvalStore(frames_agg='median', tracks_agg='median')
+
+        for mus_track, est_track in zip(mus.tracks, est.tracks):
+            assert mus_track.name == est_track.name, "Invalid pair is compared. Check folders."
+
+            estimates = {
+                'vocals': est_track.targets['vocals'].audio,
+                'accompaniment': est_track.targets['accompaniment'].audio
+            }
+
+            scores = museval.eval_mus_track(
+                mus_track, estimates
+            )
+
+            results.add_track(scores)
