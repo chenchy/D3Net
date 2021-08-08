@@ -79,7 +79,7 @@ class WaveTrainDataset(WaveDataset):
         Returns:
             mixture <torch.Tensor>: (1, 2, T) if `target` is list, otherwise (2, T)
             target <torch.Tensor>: (len(target), 2, T) if `target` is list, otherwise (2, T)
-            title <str>: Title of song
+            name <str>: Artist and title of song
         """
         _source = self.sources[0]
 
@@ -259,14 +259,14 @@ class WaveEvalDataset(WaveDataset):
         Returns:
             batch_mixture <torch.Tensor>: (n_segments, 1, 2, T_segment) if `target` is list, otherwise (n_segments, 2, T_segment)
             batch_target <torch.Tensor>: (n_segments, len(target), 2, T_segment) if `target` is list, otherwise (n_segments, 2, T_segment)
-            T <int>: Length in time domain
-            title <str>: Title of song
+            T <float>: Duration [sec]
+            name <str>: Artist and title of song
         """
         song_data = self.json_data[idx]
 
         songID = song_data['songID']
         track = self.mus.tracks[songID]
-        title = track.title
+        name = track.name
 
         T = track.duration
 
@@ -324,7 +324,7 @@ class WaveEvalDataset(WaveDataset):
         batch_mixture = torch.cat(batch_mixture_padded, dim=0)
         batch_target = torch.cat(batch_target_padded, dim=0)
         
-        return batch_mixture, batch_target, T, title
+        return batch_mixture, batch_target, T, name
     
     @classmethod
     def from_json(cls, musdb18_root, json_path, sr=SAMPLE_RATE_MUSDB, target=None, **kwargs):
@@ -451,7 +451,7 @@ class SpectrogramTrainDataset(SpectrogramDataset):
         Returns:
             mixture <torch.Tensor>: (1, 2, T) if `target` is list, otherwise (2, T)
             target <torch.Tensor>: (len(target), 2, T) if `target` is list, otherwise (2, T)
-            title <str>: Title of song
+            name <str>: Artist and title of song
         """
         _source = self.sources[0]
 
@@ -636,13 +636,13 @@ class SpectrogramEvalDataset(SpectrogramDataset):
             mixture <torch.Tensor>: Complex tensor with shape (1, 2, n_bins, n_frames)  if `target` is list, otherwise (2, n_bins, n_frames) 
             target <torch.Tensor>: Complex tensor with shape (len(target), 2, n_bins, n_frames) if `target` is list, otherwise (2, n_bins, n_frames)
             T <float>: Duration [sec]
-            title <str>: Title of song
+            name <str>: Artist and title of song
         """
         song_data = self.json_data[idx]
 
         songID = song_data['songID']
         track = self.mus.tracks[songID]
-        title = track.title
+        name = track.name
         T = track.duration
 
         batch_mixture, batch_target = [], []
@@ -714,7 +714,7 @@ class SpectrogramEvalDataset(SpectrogramDataset):
             batch_mixture = batch_mixture.reshape(*mixture_channels, *batch_mixture.size()[-2:])
             batch_target = batch_target.reshape(*target_channels, *batch_target.size()[-2:])
         
-        return batch_mixture, batch_target, T, title
+        return batch_mixture, batch_target, T, name
     
     @classmethod
     def from_json(cls, musdb18_root, json_path, fft_size, sr=SAMPLE_RATE_MUSDB, target=None, **kwargs):
@@ -761,13 +761,13 @@ class SpectrogramTestDataset(SpectrogramDataset):
             mixture <torch.Tensor>: Complex tensor with shape (1, 2, n_bins, n_frames)  if `target` is list, otherwise (2, n_bins, n_frames) 
             target <torch.Tensor>: Complex tensor with shape (len(target), 2, n_bins, n_frames) if `target` is list, otherwise (2, n_bins, n_frames)
             T <float>: Duration [sec]
-            title <str>: Title of song
+            name <str>: Artist and title of song
         """
         song_data = self.json_data[idx]
 
         songID = song_data['songID']
         track = self.mus.tracks[songID]
-        title = track.title
+        name = track.name
         T = track.duration
 
         batch_mixture, batch_target = [], []
@@ -839,7 +839,7 @@ class SpectrogramTestDataset(SpectrogramDataset):
             batch_mixture = batch_mixture.reshape(*mixture_channels, *batch_mixture.size()[-2:])
             batch_target = batch_target.reshape(*target_channels, *batch_target.size()[-2:])
         
-        return batch_mixture, batch_target, T, title
+        return batch_mixture, batch_target, T, name
 
 """
 Data loader
@@ -861,14 +861,14 @@ class TestDataLoader(torch.utils.data.DataLoader):
         self.collate_fn = test_collate_fn
 
 def eval_collate_fn(batch):
-    mixture, sources, T, title = batch[0]
+    mixture, sources, T, name = batch[0]
     
-    return mixture, sources, T, title
+    return mixture, sources, T, name
 
 def test_collate_fn(batch):
-    mixture, sources, T, title = batch[0]
+    mixture, sources, T, name = batch[0]
     
-    return mixture, sources, T, title
+    return mixture, sources, T, name
 
 def assert_sample_rate(sr):
     assert sr == SAMPLE_RATE_MUSDB, "sample rate is expected {}, but given {}".format(SAMPLE_RATE_MUSDB, sr)

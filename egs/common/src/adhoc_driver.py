@@ -161,12 +161,12 @@ class AdhocTrainer(TrainerBase):
         n_valid = len(self.valid_loader.dataset)
         
         with torch.no_grad():
-            for idx, (mixture, source, T, title) in enumerate(self.valid_loader):
+            for idx, (mixture, source, T, name) in enumerate(self.valid_loader):
                 """
-                mixture: (batch_size, n_mics, n_bins, n_frames)
-                sources: (batch_size, n_mics, n_bins, n_frames)
-                T: <list<int>>
-                title: <list<str>>
+                    mixture: (batch_size, n_mics, n_bins, n_frames)
+                    sources: (batch_size, n_mics, n_bins, n_frames)
+                    T <list<int>>: 
+                    name <list<str>>: Artist and title of song
                 """
                 if self.use_cuda:
                     mixture = mixture.cuda()
@@ -244,12 +244,12 @@ class AdhocTester(TesterBase):
         n_test = len(self.loader.dataset)
         
         with torch.no_grad():
-            for idx, (mixture, source, T, title) in enumerate(self.loader):
+            for idx, (mixture, source, T, name) in enumerate(self.loader):
                 """
                     mixture: (batch_size, 2, n_bins, n_frames)
                     source: (batch_size, 2, n_bins, n_frames)
                     T <float>: Length in time domain
-                    title <str>: Title of song
+                    name <str>: Artist and title of song
                 """
                 if self.use_cuda:
                     mixture = mixture.cuda()
@@ -295,7 +295,7 @@ class AdhocTester(TesterBase):
                 
                 # Estimated source
                 target = self.loader.dataset.target
-                song_dir = os.path.join(self.out_dir, title)
+                song_dir = os.path.join(self.out_dir, name)
                 os.makedirs(song_dir, exist_ok=True)
                 estimated_path = os.path.join(song_dir, "{}.wav".format(target))
                 torchaudio.save(estimated_path, estimated_source, sample_rate=self.sr, bits_per_sample=BITS_PER_SAMPLE)

@@ -58,7 +58,7 @@ class WaveDataset(MUSDB18Dataset):
 
         songID = data['songID']
         track = self.mus.tracks[songID]
-        title = track.title
+        name = track.name
         track.chunk_start = data['start']
         track.chunk_duration = data['duration']
 
@@ -82,8 +82,8 @@ class WaveDataset(MUSDB18Dataset):
 
         mixture = torch.Tensor(mixture).float()
         target = torch.Tensor(target).float()
-
-        return mixture, target, title
+        
+        return mixture, target, name
 
     def __len__(self):
         return len(self.json_data)
