@@ -41,6 +41,13 @@ class MUSDB18Dataset(torch.utils.data.Dataset):
 
 class WaveDataset(MUSDB18Dataset):
     def __init__(self, musdb18_root, sr=SAMPLE_RATE_MUSDB, sources=__sources__, target=None):
+        """
+        Args:
+            musdb18_root <int>: Path to MUSDB or MUSDB-HQ
+            sr: Sampling frequency. Default: 44100
+            sources <list<str>>: Sources included in mixture
+            target <str> or <list<str>>: 
+        """
         super().__init__(musdb18_root, sr=sr, sources=sources, target=target)
 
         self.json_data = None
@@ -52,7 +59,7 @@ class WaveDataset(MUSDB18Dataset):
         Returns:
             mixture <torch.Tensor>: (1, 2, T) if `target` is list, otherwise (2, T)
             target <torch.Tensor>: (len(target), 2, T) if `target` is list, otherwise (2, T)
-            title <str>: Title of song
+            name <str>: Artist and title of song
         """
         data = self.json_data[idx]
 
@@ -82,7 +89,7 @@ class WaveDataset(MUSDB18Dataset):
 
         mixture = torch.Tensor(mixture).float()
         target = torch.Tensor(target).float()
-        
+
         return mixture, target, name
 
     def __len__(self):
@@ -137,9 +144,9 @@ class SpectrogramDataset(WaveDataset):
             mixture <torch.Tensor>: Complex tensor with shape (1, 2, n_bins, n_frames)  if `target` is list, otherwise (2, n_bins, n_frames) 
             target <torch.Tensor>: Complex tensor with shape (len(target), 2, n_bins, n_frames) if `target` is list, otherwise (2, n_bins, n_frames)
             T (), <int>: Number of samples in time-domain
-            title <str>: Title of song
+            name <str>: Artist and title of song
         """
-        mixture, target, title = super().__getitem__(idx)
+        mixture, target, name = super().__getitem__(idx)
         
         n_dims = mixture.dim()
         T = mixture.size(-1)
@@ -157,7 +164,7 @@ class SpectrogramDataset(WaveDataset):
             mixture = mixture.reshape(*mixture_channels, *mixture.size()[-2:])
             target = target.reshape(*target_channels, *target.size()[-2:])
 
-        return mixture, target, T, title
+        return mixture, target, T, name
     
     @classmethod
     def from_json(cls, musdb18_root, json_path, sr=SAMPLE_RATE_MUSDB, target=None):
