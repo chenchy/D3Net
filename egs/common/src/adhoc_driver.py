@@ -291,7 +291,7 @@ class AdhocTester(TesterBase):
                 
                 estimated_source = estimated_source.cpu()
                 estimated_source = estimated_source.permute(1, 0, 2) # -> (n_mics, batch_size, T_segment)
-                estimated_source = estimated_source.view(n_mics, batch_size * T_segment)[:, :samples]
+                estimated_source = estimated_source.reshape(n_mics, batch_size * T_segment)[:, :samples]
                 
                 # Estimated source
                 target = self.loader.dataset.target
