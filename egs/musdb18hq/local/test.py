@@ -18,7 +18,6 @@ parser.add_argument('--musdb18hq_root', type=str, default=None, help='Path to MU
 parser.add_argument('--config_path', type=str, default=None, help='Path to model configuration file')
 parser.add_argument('--sr', type=int, default=10, help='Sampling rate')
 parser.add_argument('--patch_size', type=int, default=256, help='Patch size')
-parser.add_argument('--max_duration', type=float, default=10, help='Max duration for validation')
 parser.add_argument('--fft_size', type=int, default=4096, help='FFT length')
 parser.add_argument('--hop_size', type=int, default=1024, help='Hop length')
 parser.add_argument('--window_fn', type=str, default='hamming', help='Window function')

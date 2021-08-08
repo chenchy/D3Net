@@ -6,7 +6,6 @@ continue_from=""
 sources="[drums,bass,other,vocals]"
 target='bass'
 patch=256
-max_duration=30
 
 musdb18hq_root="../../../dataset/musdb18hq"
 sr=44100
@@ -60,7 +59,6 @@ test.py \
 --config_path "${config_path}" \
 --sr ${sr} \
 --patch_size ${patch} \
---max_duration ${max_duration} \
 --window_fn "${window_fn}" \
 --fft_size ${fft_size} \
 --hop_size ${hop_size} \
