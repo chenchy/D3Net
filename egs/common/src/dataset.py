@@ -92,25 +92,6 @@ class WaveDataset(MUSDB18Dataset):
         with open(json_path, 'w') as f:
             json.dump(self.json_data, f, indent=4)
 
-class WaveTestDataset(WaveDataset):
-    def __init__(self, musdb18_root, sr=SAMPLE_RATE_MUSDB, sources=__sources__, target=None):
-        super().__init__(musdb18_root, sr=sr, sources=sources, target=target)
-
-        assert type(target) is str, "Specify single `target`"
-        
-        assert_sample_rate(sr)
-        self.mus = musdb.DB(root=self.musdb18_root, subsets="test", is_wav=True)
-
-        self.json_data = []
-
-        for songID, track in enumerate(self.mus.tracks):
-            data = {
-                'songID': songID,
-                'start': 0,
-                'duration': track.duration
-            }
-            self.json_data.append(data)
-
 class SpectrogramDataset(WaveDataset):
     def __init__(self, musdb18_root, fft_size, hop_size=None, window_fn='hann', normalize=False, sr=SAMPLE_RATE_MUSDB, sources=__sources__, target=None, json_path=None):
         super().__init__(musdb18_root, sr=sr, sources=sources, target=target)

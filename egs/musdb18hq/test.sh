@@ -40,10 +40,12 @@ gpu_id="0"
 
 save_dir="${exp_dir}/sr${sr}/${sources}/patch${patch}/${criterion}/stft${fft_size}-${hop_size}_${window_fn}-window/b${batch_size}_e${epochs}_${optimizer}-lr${lr}-decay${weight_decay}_clip${max_norm}/seed${seed}"
 
+model_choice="best"
+
 model_dir="${save_dir}/${target}/model"
-loss_dir="${save_dir}/${target}/loss"
-sample_dir="${save_dir}/${target}/sample"
+model_path="${model_dir}/${model_choice}.pth"
 log_dir="${save_dir}/${target}/log"
+out_dir="${save_dir}/test"
 
 if [ ! -e "${log_dir}" ]; then
     mkdir -p "${log_dir}"
@@ -53,7 +55,7 @@ time_stamp=`TZ=UTC-9 date "+%Y%m%d-%H%M%S"`
 
 export CUDA_VISIBLE_DEVICES="${gpu_id}"
 
-train.py \
+test.py \
 --musdb18hq_root ${musdb18hq_root} \
 --config_path "${config_path}" \
 --sr ${sr} \
@@ -65,16 +67,8 @@ train.py \
 --sources ${sources} \
 --target ${target} \
 --criterion ${criterion} \
---optimizer ${optimizer} \
---lr ${lr} \
---weight_decay ${weight_decay} \
---max_norm ${max_norm} \
---batch_size ${batch_size} \
---epochs ${epochs} \
---model_dir "${model_dir}" \
---loss_dir "${loss_dir}" \
---sample_dir "${sample_dir}" \
---continue_from "${continue_from}" \
+--out_dir "${out_dir}" \
+--model_path "${model_path}" \
 --use_cuda ${use_cuda} \
 --overwrite ${overwrite} \
---seed ${seed} | tee "${log_dir}/train_${time_stamp}.log"
+--seed ${seed} | tee "${log_dir}/test_${time_stamp}.log"

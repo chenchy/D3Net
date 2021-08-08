@@ -1,13 +1,14 @@
 import os
 import time
 
-import numpy as np
 import torch
 import torchaudio
 import torch.nn as nn
 
 from utils.utils import draw_loss_curve
-from driver import TrainerBase
+from driver import TrainerBase, TesterBase
+
+BITS_PER_SAMPLE = 16
 
 class AdhocTrainer(TrainerBase):
     def __init__(self, model, loader, criterion, optimizer, args):
@@ -160,35 +161,36 @@ class AdhocTrainer(TrainerBase):
         n_valid = len(self.valid_loader.dataset)
         
         with torch.no_grad():
-            for idx, (mixture, sources, T, title) in enumerate(self.valid_loader):
+            for idx, (mixture, source, T, title) in enumerate(self.valid_loader):
                 """
-                mixture (batch_size, n_mics, n_bins, n_frames)
-                sources (batch_size, n_mics, n_bins, n_frames)
-                title <list<str>>
+                mixture: (batch_size, n_mics, n_bins, n_frames)
+                sources: (batch_size, n_mics, n_bins, n_frames)
+                T: <list<int>>
+                title: <list<str>>
                 """
                 if self.use_cuda:
                     mixture = mixture.cuda()
-                    sources = sources.cuda()
+                    source = source.cuda()
                 
                 mixture_amplitude = torch.abs(mixture)
-                sources_amplitude = torch.abs(sources)
+                source_amplitude = torch.abs(source)
                 
                 output = self.model(mixture_amplitude)
-                loss = self.criterion(output, sources_amplitude, batch_mean=False)
+                loss = self.criterion(output, source_amplitude, batch_mean=False)
                 loss = loss.sum(dim=0)
                 valid_loss += loss.item()
                 
                 if idx < 5:
-                    mixture = mixture[0].cpu() # -> (2, n_bins, n_frames)
-                    mixture_amplitude = mixture_amplitude[0].cpu() # -> (2, n_bins, n_frames)
-                    estimated_sources_amplitude = output[0].cpu() # -> (2, n_bins, n_frames)
+                    mixture = mixture[0].cpu() # -> (n_mics, n_bins, n_frames)
+                    mixture_amplitude = mixture_amplitude[0].cpu() # -> (n_mics, n_bins, n_frames)
+                    estimated_sources_amplitude = output[0].cpu() # -> (n_mics, n_bins, n_frames)
                     ratio = estimated_sources_amplitude / mixture_amplitude
                     
-                    estimated_source = ratio * mixture # -> (2, n_bins, n_frames)
-                    estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (2, T)
+                    estimated_source = ratio * mixture # -> (n_mics, n_bins, n_frames)
+                    estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
                     estimated_source = estimated_source.cpu()
                     
-                    mixture = torch.istft(mixture, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (2, T)
+                    mixture = torch.istft(mixture, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
                     mixture = mixture.cpu()
                     
                     save_dir = os.path.join(self.sample_dir, "{}".format(idx + 1))
@@ -197,13 +199,81 @@ class AdhocTrainer(TrainerBase):
                     save_path = os.path.join(save_dir, "mixture.wav")
                     norm = torch.abs(mixture).max()
                     mixture = mixture / norm
-                    torchaudio.save(save_path, mixture, sample_rate=self.sr)
+                    torchaudio.save(save_path, mixture, sample_rate=self.sr, bits_per_sample=BITS_PER_SAMPLE)
                     
                     save_path = os.path.join(save_dir, "epoch{}.wav".format(epoch + 1))
                     norm = torch.abs(estimated_source).max()
                     estimated_source = estimated_source / norm
-                    torchaudio.save(save_path, estimated_source, sample_rate=self.sr)
+                    torchaudio.save(save_path, estimated_source, sample_rate=self.sr, bits_per_sample=BITS_PER_SAMPLE)
         
         valid_loss /= n_valid
         
         return valid_loss
+
+class AdhocTester(TesterBase):
+    def __init__(self, model, loader, criterion, args):
+        super().__init__(model, loader, criterion, args)
+    
+    def run(self):
+        self.model.eval()
+        
+        test_loss = 0
+        test_loss_improvement = 0
+        n_test = len(self.loader.dataset)
+        
+        with torch.no_grad():
+            for idx, (mixture, source, T, title) in enumerate(self.loader):
+                """
+                    mixture: (batch_size, 2, n_bins, n_frames)
+                    source: (batch_size, 2, n_bins, n_frames)
+                    T <int>: Length in time domain
+                    title <str>: Title of song
+                """
+                print(mixture.size(), source.size(), T.size())
+                raise NotImplementedError
+                if self.use_cuda:
+                    mixture = mixture.cuda()
+                    source = source.cuda()
+                
+                mixture_amplitude = torch.abs(mixture)
+                source_amplitude = torch.abs(source)
+                
+                loss_mixture = self.criterion(mixture_amplitude, source_amplitude, batch_mean=False)
+                loss_mixture = loss_mixture.mean(dim=0)
+                
+                estimated_source_amplitude = self.model(mixture_amplitude)
+                loss = self.criterion(estimated_source_amplitude, source_amplitude, batch_mean=False)
+                loss = loss.mean(dim=0)
+
+                loss_improvement = loss_mixture.item() - loss.item()
+
+                ratio = estimated_source_amplitude / mixture_amplitude
+                estimated_source = ratio * mixture # -> (batch_size, n_mics, n_bins, n_frames)
+
+                n_dims = mixture.dim()
+
+                if n_dims > 2:
+                    estimated_source_channels = estimated_source.size()[:-1]
+                    estimated_source = estimated_source.view(-1, estimated_source.size(-1)) # -> (batch_size * n_mics * n_bins, n_frames)
+                
+                estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
+                
+                if n_dims > 2:
+                    estimated_source = estimated_source.view(*estimated_source_channels, *estimated_source.size()[-2:])
+                
+                estimated_source = estimated_source.cpu()
+                
+                # Estimated source
+                target = self.loader.dataset.target
+                song_dir = os.path.join(self.out_dir, title)
+                os.makedirs(song_dir, exist_ok=True)
+                estimated_path = os.path.join(song_dir, "{}.wav".format(target))
+                torchaudio.save(estimated_path, estimated_source, sample_rate=self.sr, bits_per_sample=BITS_PER_SAMPLE)
+                
+                test_loss += loss.item()
+                test_loss_improvement += loss_improvement
+
+        test_loss /= n_test
+        test_loss_improvement /= n_test
+        
+        print("Loss: {:.3f}, loss improvement: {:3f}".format(test_loss, test_loss_improvement))
