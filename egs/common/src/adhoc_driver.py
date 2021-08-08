@@ -216,6 +216,10 @@ class AdhocTester(TesterBase):
 
     def _reset(self, args):
         self.sr = args.sr
+
+        self.fft_size, self.hop_size = args.fft_size, args.hop_size    
+        self.window = self.valid_loader.dataset.window
+        self.normalize = self.valid_loader.dataset.normalize
         
         self.out_dir = args.out_dir
         
