@@ -268,8 +268,6 @@ class WaveEvalDataset(WaveDataset):
         track = self.mus.tracks[songID]
         name = track.name
 
-        T = track.duration
-
         batch_mixture, batch_target = [], []
         max_samples = 0
 
@@ -324,7 +322,7 @@ class WaveEvalDataset(WaveDataset):
         batch_mixture = torch.cat(batch_mixture_padded, dim=0)
         batch_target = torch.cat(batch_target_padded, dim=0)
         
-        return batch_mixture, batch_target, T, name
+        return batch_mixture, batch_target, name
     
     @classmethod
     def from_json(cls, musdb18_root, json_path, sr=SAMPLE_RATE_MUSDB, target=None, **kwargs):
@@ -572,7 +570,7 @@ class SpectrogramTrainDataset(SpectrogramDataset):
         return dataset
 
 class SpectrogramEvalDataset(SpectrogramDataset):
-    def __init__(self, musdb18_root, fft_size, hop_size=None, window_fn='hann', normalize=False, sr=SAMPLE_RATE_MUSDB, patch_duration=10, overlap=None, max_duration=None, sources=__sources__, target=None, json_path=None):
+    def __init__(self, musdb18_root, fft_size, hop_size=None, window_fn='hann', normalize=False, sr=SAMPLE_RATE_MUSDB, patch_duration=10, max_duration=None, sources=__sources__, target=None, json_path=None):
         super().__init__(musdb18_root, fft_size=fft_size, hop_size=hop_size, window_fn=window_fn, normalize=normalize, sr=sr, sources=sources, target=target)
         
         assert_sample_rate(sr)
@@ -587,12 +585,8 @@ class SpectrogramEvalDataset(SpectrogramDataset):
 
         if max_duration is None:
             max_duration = patch_duration
-        self.max_duration = patch_duration
-        
-        if overlap is None:
-            overlap = self.patch_duration / 2
+        self.max_duration = max_duration
 
-        self.overlap = overlap
         self.json_data = []
 
         for songID, track in enumerate(self.mus.tracks):
@@ -600,18 +594,10 @@ class SpectrogramEvalDataset(SpectrogramDataset):
                 'songID': songID,
                 'patches': []
             }
-            for start in np.arange(-(patch_duration - overlap), - patch_duration, -(patch_duration - overlap)):
-                data = {
-                    'start': 0,
-                    'duration': patch_duration + start,
-                    'padding_start': -start,
-                    'padding_end': 0
-                }
-                song_data['patches'].append(data)
             
             max_duration = min(track.duration, self.max_duration)
 
-            for start in np.arange(0, max_duration, patch_duration - overlap):
+            for start in np.arange(0, max_duration, patch_duration):
                 if start + patch_duration > max_duration:
                     data = {
                         'start': start,
@@ -643,7 +629,6 @@ class SpectrogramEvalDataset(SpectrogramDataset):
         songID = song_data['songID']
         track = self.mus.tracks[songID]
         name = track.name
-        T = track.duration
 
         batch_mixture, batch_target = [], []
         max_samples = 0
@@ -714,7 +699,7 @@ class SpectrogramEvalDataset(SpectrogramDataset):
             batch_mixture = batch_mixture.reshape(*mixture_channels, *batch_mixture.size()[-2:])
             batch_target = batch_target.reshape(*target_channels, *batch_target.size()[-2:])
         
-        return batch_mixture, batch_target, T, name
+        return batch_mixture, batch_target, name
     
     @classmethod
     def from_json(cls, musdb18_root, json_path, fft_size, sr=SAMPLE_RATE_MUSDB, target=None, **kwargs):
@@ -861,9 +846,9 @@ class TestDataLoader(torch.utils.data.DataLoader):
         self.collate_fn = test_collate_fn
 
 def eval_collate_fn(batch):
-    mixture, sources, T, name = batch[0]
+    mixture, sources, name = batch[0]
     
-    return mixture, sources, T, name
+    return mixture, sources, name
 
 def test_collate_fn(batch):
     mixture, sources, T, name = batch[0]

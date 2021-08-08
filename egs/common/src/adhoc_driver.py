@@ -161,11 +161,10 @@ class AdhocTrainer(TrainerBase):
         n_valid = len(self.valid_loader.dataset)
         
         with torch.no_grad():
-            for idx, (mixture, source, T, name) in enumerate(self.valid_loader):
+            for idx, (mixture, source, name) in enumerate(self.valid_loader):
                 """
                     mixture: (batch_size, n_mics, n_bins, n_frames)
                     sources: (batch_size, n_mics, n_bins, n_frames)
-                    T <list<int>>: 
                     name <list<str>>: Artist and title of song
                 """
                 if self.use_cuda:
@@ -175,25 +174,37 @@ class AdhocTrainer(TrainerBase):
                 mixture_amplitude = torch.abs(mixture)
                 source_amplitude = torch.abs(source)
                 
-                output = self.model(mixture_amplitude)
-                loss = self.criterion(output, source_amplitude, batch_mean=False)
-                loss = loss.sum(dim=0)
+                estimated_source_amplitude = self.model(mixture_amplitude)
+                loss = self.criterion(estimated_source_amplitude, source_amplitude, batch_mean=False)
+                loss = loss.mean(dim=0)
                 valid_loss += loss.item()
-                
+
                 if idx < 5:
-                    mixture = mixture[0].cpu() # -> (n_mics, n_bins, n_frames)
-                    mixture_amplitude = mixture_amplitude[0].cpu() # -> (n_mics, n_bins, n_frames)
-                    estimated_sources_amplitude = output[0].cpu() # -> (n_mics, n_bins, n_frames)
-                    ratio = estimated_sources_amplitude / mixture_amplitude
+                    ratio = estimated_source_amplitude / mixture_amplitude
+                    estimated_source = ratio * mixture # -> (batch_size, n_mics, n_bins, n_frames)
+
+                    mixture_channels = mixture.size()[:-2] # -> (batch_size, n_mics)
+                    estimated_source_channels = estimated_source.size()[:-2] # -> (batch_size, n_mics)
+                    mixture = mixture.view(-1, *mixture.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
+                    estimated_source = estimated_source.view(-1, *estimated_source.size()[-2:]) # -> (batch_size * n_mics, n_bins, n_frames)
                     
-                    estimated_source = ratio * mixture # -> (n_mics, n_bins, n_frames)
-                    estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
-                    estimated_source = estimated_source.cpu()
+                    mixture = torch.istft(mixture, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T_segment)
+                    estimated_source = torch.istft(estimated_source, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T_segment)
+
+                    mixture = mixture.view(*mixture_channels, -1) # -> (batch_size, n_mics, T_segment)
+                    estimated_source = estimated_source.view(*estimated_source_channels, -1) # -> (batch_size, n_mics, T_segment)
                     
-                    mixture = torch.istft(mixture, self.fft_size, hop_length=self.hop_size, window=self.window, normalized=self.normalize, return_complex=False) # -> (n_mics, T)
+                    batch_size, n_mics, T_segment = mixture.size()
+                    
                     mixture = mixture.cpu()
+                    mixture = mixture.permute(1, 0, 2) # -> (n_mics, batch_size, T_segment)
+                    mixture = mixture.reshape(n_mics, batch_size * T_segment)
+
+                    estimated_source = estimated_source.cpu()
+                    estimated_source = estimated_source.permute(1, 0, 2) # -> (n_mics, batch_size, T_segment)
+                    estimated_source = estimated_source.reshape(n_mics, batch_size * T_segment)
                     
-                    save_dir = os.path.join(self.sample_dir, "{}".format(idx + 1))
+                    save_dir = os.path.join(self.sample_dir, name)
 
                     os.makedirs(save_dir, exist_ok=True)
                     save_path = os.path.join(save_dir, "mixture.wav")
@@ -295,9 +306,9 @@ class AdhocTester(TesterBase):
                 
                 # Estimated source
                 target = self.loader.dataset.target
-                song_dir = os.path.join(self.out_dir, name)
-                os.makedirs(song_dir, exist_ok=True)
-                estimated_path = os.path.join(song_dir, "{}.wav".format(target))
+                save_dir = os.path.join(self.out_dir, name)
+                os.makedirs(save_dir, exist_ok=True)
+                estimated_path = os.path.join(save_dir, "{}.wav".format(target))
                 torchaudio.save(estimated_path, estimated_source, sample_rate=self.sr, bits_per_sample=BITS_PER_SAMPLE)
                 
                 test_loss += loss.item()
