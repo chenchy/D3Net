@@ -52,6 +52,4 @@ export CUDA_VISIBLE_DEVICES="${gpu_id}"
 eval_all.py \
 --musdb18hq_root "${musdb18hq_root}" \
 --estimated_musdb18hq_root "${estimated_musdb18hq_root}" \
---sr ${sr} \
---overwrite ${overwrite} \
---seed ${seed} | tee "${log_dir}/test_${time_stamp}.log"
+--seed ${seed} | tee "${log_dir}/eval_${time_stamp}.log"

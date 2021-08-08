@@ -96,3 +96,5 @@ class EvaluaterBase:
             estimates_dir = os.path.join(estimated_musdb18_root, name)
             scores = museval.eval_dir(reference_dir, estimates_dir)
             results.add_track(scores)
+        
+        return results
