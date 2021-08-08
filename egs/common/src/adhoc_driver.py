@@ -303,8 +303,6 @@ class AdhocTester(TesterBase):
                 test_loss += loss.item()
                 test_loss_improvement += loss_improvement
 
-                raise NotImplementedError
-
         test_loss /= n_test
         test_loss_improvement /= n_test
         
